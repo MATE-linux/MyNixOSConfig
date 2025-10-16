@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+echo "Пересборка..."
+nixos-rebuild switch
+echo "Система пересобрана, синхронизация конфига..."
+cd /etc/nixos
+git add .
+read -i "Введите описание изменений: " commit_name
+git commit -m "$commit_name"
+git push origin main
+echo "Успех!!!"
