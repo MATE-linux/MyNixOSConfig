@@ -238,7 +238,8 @@
     gitnuro
     github-desktop
     waydroid
-    weston 
+    weston
+    minetest 
   ];
   #qt = {
   #  enable = true;
