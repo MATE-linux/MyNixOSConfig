@@ -124,6 +124,7 @@
     hashedPassword = "$6$G1Iqe493JLGad8hm$BeldIA2FBoa810TvGR2qspBrQniaG3jDcRPOygQwoRRe6aE1nfHQ58kDdz9cM3LuovXQV99OiPzKdF/Qw/d0X0";
     packages = with pkgs; [
       tree
+      python3Packages.pygame
     ];
   };
   programs.adb.enable = true;
