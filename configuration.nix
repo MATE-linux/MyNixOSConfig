@@ -23,7 +23,35 @@
     # Это заставляет систему использовать swap только при крайней необходимости
     "vm.swappiness" = 10;
   };
+    # Параметры ядра для гибернации
+  boot = {
+    resumeDevice = "/dev/disk/by-uuid/f5e5169b-4d21-4b65-b7a8-5c314177a50f";
+    kernelParams = [
+      "resume=UUID=f5e5169b-4d21-4b65-b7a8-5c314177a50f" # И снова тот же UUID
+    ];
+    
+    # Для некоторых систем может потребоваться дополнительная настройка
+    #extraModprobeConfig = ''
+    #  options nvidia NVreg_EnableSuspend=1
+    #  options nvidia NVreg_EnableMSI=1
+    #'';
+  };
 
+  # Настройки systemd для гибернации
+  systemd = {
+    sleep.extraConfig = ''
+      HibernateMode=shutdown
+      HybridSleepMode=shutdown
+    '';
+  };
+
+  # Настройки управления питанием
+  powerManagement = {
+    enable = true;
+    resumeCommands = ''
+      echo "Восстановление из гибернации..."
+    '';
+  };
   networking.hostName = "nixos-MSI"; # Define your hostname.
   # Pick only one of the below networking options.
   #networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -195,6 +223,7 @@
     # Дополнительные полезные пакеты для Python
     python3Packages.pip
     python3Packages.virtualenv
+    python3Packages.pygame
     #androidenv.androidPkgs.androidsdk
     #androidenv.androidPkgs.platform-tools
     kotlin
@@ -239,7 +268,8 @@
     github-desktop
     waydroid
     weston
-    minetest 
+    minetest
+    luanti 
   ];
   #qt = {
   #  enable = true;
