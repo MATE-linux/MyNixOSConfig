@@ -7,7 +7,7 @@ stdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "dkosmari";
     repo = "nvidia-340.108-updated";
-    rev = "a8f0fe0a30cade1ed4d31f8b2fca95e50f6f5444";
+    rev = "b09fbaea3dee9a63cc9e3046437998576da7d07e";
     sha256 = "0000000000000000000000000000000000000000000000000000"; # Замените после первой сборки
   };
 
