@@ -3,7 +3,11 @@
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
 { config, lib, pkgs, ... }:
-
+let
+  nvidia340Updated = pkgs.callPackage ./nvidia-340-updated.nix {
+    kernel = config.boot.kernelPackages.kernel;
+  };
+in
 {
   imports =
     [ # Include the results of the hardware scan.
@@ -36,6 +40,30 @@
     #  options nvidia NVreg_EnableMSI=1
     #'';
   };
+
+
+
+
+
+  # Используем наш кастомный драйвер
+  #boot.extraModulePackages = [ nvidia340Updated ];
+  
+  # Отключаем nouveau
+  #boot.blacklistedKernelModules = [ "nouveau" ];
+  #boot.kernelModules = [ "nvidia" ];
+
+  # Включаем драйверы NVIDIA
+  #services.xserver.videoDrivers = [ "nvidia" ];
+  
+  # Настройки NVIDIA
+  #hardware.nvidia.modesetting.enable = true;
+
+  #hardware.nvidia.open = false;
+
+
+
+
+
 
   # Настройки systemd для гибернации
   systemd = {
@@ -124,7 +152,6 @@
     hashedPassword = "$6$G1Iqe493JLGad8hm$BeldIA2FBoa810TvGR2qspBrQniaG3jDcRPOygQwoRRe6aE1nfHQ58kDdz9cM3LuovXQV99OiPzKdF/Qw/d0X0";
     packages = with pkgs; [
       tree
-      python3Packages.pygame
     ];
   };
   programs.adb.enable = true;
@@ -219,12 +246,6 @@
     #дрова для разных ФС
     exfat
     ntfs3g
-    python3Full
-    # python3Packages.idle-classic    
-    # Дополнительные полезные пакеты для Python
-    python3Packages.pip
-    python3Packages.virtualenv
-    python3Packages.pygame
     #androidenv.androidPkgs.androidsdk
     #androidenv.androidPkgs.platform-tools
     kotlin
@@ -271,6 +292,9 @@
     weston
     minetest
     luanti 
+    (callPackage ./nvidia-340-updated.nix { 
+      kernel = config.boot.kernelPackages.kernel; 
+    })
   ];
   #qt = {
   #  enable = true;
