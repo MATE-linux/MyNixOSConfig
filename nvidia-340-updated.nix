@@ -31,7 +31,6 @@ stdenv.mkDerivation rec {
   buildPhase = ''
     # Даем скриптам права на выполнение
     chmod +x apply-patch.sh
-    chmod +x update.sh
 
     # Запускаем скрипт, который сам скачает и пропатчит .run файл
     echo "Запуск apply-patch.sh..."
