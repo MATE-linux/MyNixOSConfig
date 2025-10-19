@@ -8,7 +8,7 @@ stdenv.mkDerivation rec {
     owner = "dkosmari";
     repo = "nvidia-340.108-updated";
     rev = "b09fbaea3dee9a63cc9e3046437998576da7d07e";
-    sha256 = "00000000000000000000000000000000000000000000"; # Замени после первой сборки
+    sha256 = "2pahIWOSPb+i2yRX4Ev3VLXaYNnCZFmVPU4xP7mRkSQ="; # Замени после первой сборки
   };
 
   nativeBuildInputs = [ 
