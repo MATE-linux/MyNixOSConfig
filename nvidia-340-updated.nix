@@ -20,8 +20,10 @@ stdenv.mkDerivation rec {
     patchelf
   ];
 
-  buildInputs = with stdenv.cc; [
-    libc libcxx libstdcxx
+  # Упрощаем buildInputs - убираем несуществующие переменные
+  buildInputs = [ 
+    stdenv.cc.libc
+    stdenv.cc.cc
   ];
 
   dontConfigure = true;
