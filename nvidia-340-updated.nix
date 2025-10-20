@@ -10,6 +10,12 @@ stdenv.mkDerivation rec {
     rev = "a8f0fe0a30cade1ed4d31f8b2fca95e50f6f5444";
     sha256 = "2pahIWOSPb+i2yRX4Ev3VLXaYNnCZFmVPU4xP7mRkSQ=";
   };
+  
+  # Предварительно скачиваем .run файл через fetchurl
+  nvidiaRun = fetchurl {
+    url = "https://us.download.nvidia.com/XFree86/Linux-x86_64/340.108/NVIDIA-Linux-x86_64-340.108.run";
+    sha256 = "1jyj5j5q7q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5"; # Замени на актуальный хеш
+  };
 
   nativeBuildInputs = [ 
     autoPatchelfHook 
