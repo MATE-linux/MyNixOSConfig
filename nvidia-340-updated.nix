@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchFromGitHub, autoPatchelfHook, makeWrapper, kernel, wget, curl, binutils, kmod, patch }:
+{ stdenv, lib, fetchFromGitHub, fetchurl, autoPatchelfHook, makeWrapper, kernel, wget, curl, binutils, kmod, patch }:
 
 stdenv.mkDerivation rec {
   pname = "nvidia-340-updated";
@@ -12,7 +12,7 @@ stdenv.mkDerivation rec {
   };
   
   # Предварительно скачиваем .run файл через fetchurl
-  nvidiaRun = fetchUrl {
+  nvidiaRun = fetchurl {
     url = "https://us.download.nvidia.com/XFree86/Linux-x86_64/340.108/NVIDIA-Linux-x86_64-340.108.run";
     sha256 = "1jyj5j5q7q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5"; # Замени на актуальный хеш
   };
