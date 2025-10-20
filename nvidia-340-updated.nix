@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchFromGitHub, autoPatchelfHook, makeWrapper, kernel, wget, curl, binutils, kmod, patch, gnused, gnugrep }:
+{ stdenv, lib, fetchFromGitHub, autoPatchelfHook, makeWrapper, kernel, wget, curl, binutils, kmod, patch }:
 
 stdenv.mkDerivation rec {
   pname = "nvidia-340-updated";
@@ -19,8 +19,6 @@ stdenv.mkDerivation rec {
     binutils
     kmod
     patch
-    gnused
-    gnugrep
   ];
 
   buildInputs = [ stdenv.cc.cc.lib ];
@@ -28,24 +26,16 @@ stdenv.mkDerivation rec {
   dontConfigure = true;
 
   buildPhase = ''
-    # Исправляем шебанги во всех скриптах
+    # Используем встроенную функцию Nix для патчинга шебангов
     echo "Патчим шебанги скриптов..."
-    for script in *.sh; do
-      if [ -f "$script" ]; then
-        echo "Исправляем шебанг в $script"
-        sed -i 's|#!/bin/bash|#!/usr/bin/env bash|' "$script"
-        sed -i 's|#!/bin/sh|#!/usr/bin/env bash|' "$script"
-        chmod +x "$script"
-      fi
-    done
+    patchShebangs .
 
-    # Проверяем шебанг apply-patch.sh
+    # Проверяем что шебанги исправлены
     echo "Проверяем apply-patch.sh:"
     head -1 apply-patch.sh
-    
-    # Даем скриптам права на выполнение
-    chmod +x apply-patch.sh
-    
+    echo "Проверяем generate-patch.sh:"
+    head -1 generate-patch.sh
+
     # Запускаем скрипт, который сам скачает и пропатчит .run файл
     echo "Запуск apply-patch.sh для скачивания и патчинга драйвера..."
     ./apply-patch.sh
@@ -103,7 +93,7 @@ stdenv.mkDerivation rec {
     autoPatchelf $out
     
     # Исправляем шебанги в установленных скриптах
-    find $out/bin -type f -executable -exec sh -c 'file {} | grep -q "shell script" && patchShebangs {}' \;
+    patchShebangs $out/bin
   '';
 
   meta = with lib; {
