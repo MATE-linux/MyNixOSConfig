@@ -14,7 +14,7 @@ stdenv.mkDerivation rec {
   # Предварительно скачиваем .run файл через fetchurl
   nvidiaRun = fetchurl {
     url = "https://us.download.nvidia.com/XFree86/Linux-x86_64/340.108/NVIDIA-Linux-x86_64-340.108.run";
-    sha256 = "xnHU8bfAm8GvB5uYtEetsG1wSwT4AvcEWmEfpQEztxs="; # Замени на актуальный хеш
+    sha256 = "xnHU8bfAm8GvB5uYtEetsG1wSwT4AvcEWmEfpQEztxs=";
   };
 
   nativeBuildInputs = [ 
@@ -36,14 +36,10 @@ stdenv.mkDerivation rec {
     echo "Патчим шебанги скриптов..."
     patchShebangs .
 
-    # Проверяем что шебанги исправлены
-    echo "Проверяем apply-patch.sh:"
-    head -1 apply-patch.sh
-    echo "Проверяем generate-patch.sh:"
-    head -1 generate-patch.sh
     # Копируем предварительно скачанный .run файл
     cp ${nvidiaRun} NVIDIA-Linux-x86_64-${version}.run
     chmod +x NVIDIA-Linux-x86_64-${version}.run
+
     # Запускаем скрипт, который пропатчит .run файл
     echo "Запуск apply-patch.sh для скачивания и патчинга драйвера..."
     ./apply-patch.sh
@@ -56,13 +52,16 @@ stdenv.mkDerivation rec {
     fi
 
     echo "Пропатченный .run файл готов: NVIDIA-Linux-x86_64-${version}.run"
+
+    # Собираем модуль ядра с правильными путями
+    echo "Сборка модуля ядра..."
+    make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) modules
   '';
 
   installPhase = ''
-    # Собираем и устанавливаем модуль ядра через Makefile из репозитория
-    echo "Сборка и установка модуля ядра..."
-    make KVERSION="${kernel.modDirVersion}" SYSSRC="${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
-    make KVERSION="${kernel.modDirVersion}" SYSSRC="${kernel.dev}/lib/modules/${kernel.modDirVersion}/build" INSTALL_MOD_PATH=$out modules_install
+    # Устанавливаем модуль ядра с правильными путями
+    echo "Установка модуля ядра..."
+    make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) INSTALL_MOD_PATH=$out modules_install
 
     # Устанавливаем пользовательскую часть из пропатченного .run файла
     echo "Установка пользовательской части драйвера..."
