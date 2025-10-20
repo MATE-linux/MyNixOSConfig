@@ -12,7 +12,7 @@ stdenv.mkDerivation rec {
   };
   
   # Предварительно скачиваем .run файл через fetchurl
-  nvidiaRun = fetchurl {
+  nvidiaRun = fetchFromUrl {
     url = "https://us.download.nvidia.com/XFree86/Linux-x86_64/340.108/NVIDIA-Linux-x86_64-340.108.run";
     sha256 = "1jyj5j5q7q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5q5"; # Замени на актуальный хеш
   };
