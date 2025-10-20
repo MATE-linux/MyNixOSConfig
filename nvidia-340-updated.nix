@@ -5,8 +5,8 @@ stdenv.mkDerivation rec {
   version = "340.108";
 
   src = fetchFromGitHub {
-    owner = "MATE-linux";
-    repo = "nvidia-340.108-updated-nix";
+    owner = "dkosmari";
+    repo = "nvidia-340.108-updated";
     rev = "a8f0fe0a30cade1ed4d31f8b2fca95e50f6f5444";
     sha256 = "2pahIWOSPb+i2yRX4Ev3VLXaYNnCZFmVPU4xP7mRkSQ=";
   };
@@ -41,8 +41,10 @@ stdenv.mkDerivation rec {
     head -1 apply-patch.sh
     echo "Проверяем generate-patch.sh:"
     head -1 generate-patch.sh
-
-    # Запускаем скрипт, который сам скачает и пропатчит .run файл
+    # Копируем предварительно скачанный .run файл
+    cp ${nvidiaRun} NVIDIA-Linux-x86_64-${version}.run
+    chmod +x NVIDIA-Linux-x86_64-${version}.run
+    # Запускаем скрипт, который пропатчит .run файл
     echo "Запуск apply-patch.sh для скачивания и патчинга драйвера..."
     ./apply-patch.sh
 
