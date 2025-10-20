@@ -55,7 +55,7 @@ stdenv.mkDerivation rec {
 
     # Собираем модуль ядра с правильными путями
     echo "Сборка модуля ядра..."
-    make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) modules
+    make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) KCFLAGS="-Wno-error=missing-prototypes" modules
   '';
 
   installPhase = ''
