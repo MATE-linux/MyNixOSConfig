@@ -5,8 +5,8 @@ stdenv.mkDerivation rec {
   version = "340.108";
 
   src = fetchFromGitHub {
-    owner = "dkosmari";
-    repo = "nvidia-340.108-updated";
+    owner = "MATE-linux";
+    repo = "nvidia-340.108-updated-nix";
     rev = "a8f0fe0a30cade1ed4d31f8b2fca95e50f6f5444";
     sha256 = "2pahIWOSPb+i2yRX4Ev3VLXaYNnCZFmVPU4xP7mRkSQ=";
   };
