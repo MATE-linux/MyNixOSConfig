@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchFromGitHub, autoPatchelfHook, makeWrapper, kernel, wget, curl, binutils, kmod }:
+{ stdenv, lib, fetchFromGitHub, autoPatchelfHook, makeWrapper, kernel, wget, curl, binutils, kmod, patch, gnused, gnugrep }:
 
 stdenv.mkDerivation rec {
   pname = "nvidia-340-updated";
@@ -18,6 +18,9 @@ stdenv.mkDerivation rec {
     curl
     binutils
     kmod
+    patch
+    gnused
+    gnugrep
   ];
 
   buildInputs = [ stdenv.cc.cc.lib ];
@@ -25,6 +28,21 @@ stdenv.mkDerivation rec {
   dontConfigure = true;
 
   buildPhase = ''
+    # Исправляем шебанги во всех скриптах
+    echo "Патчим шебанги скриптов..."
+    for script in *.sh; do
+      if [ -f "$script" ]; then
+        echo "Исправляем шебанг в $script"
+        sed -i 's|#!/bin/bash|#!/usr/bin/env bash|' "$script"
+        sed -i 's|#!/bin/sh|#!/usr/bin/env bash|' "$script"
+        chmod +x "$script"
+      fi
+    done
+
+    # Проверяем шебанг apply-patch.sh
+    echo "Проверяем apply-patch.sh:"
+    head -1 apply-patch.sh
+    
     # Даем скриптам права на выполнение
     chmod +x apply-patch.sh
     
@@ -35,6 +53,7 @@ stdenv.mkDerivation rec {
     # Проверяем что .run файл создался
     if [ ! -f "NVIDIA-Linux-x86_64-${version}.run" ]; then
       echo "Ошибка: Пропатченный .run файл не создался!"
+      ls -la
       exit 1
     fi
 
@@ -50,20 +69,25 @@ stdenv.mkDerivation rec {
     # Устанавливаем пользовательскую часть из пропатченного .run файла
     echo "Установка пользовательской части драйвера..."
     chmod +x "NVIDIA-Linux-x86_64-${version}.run"
-    "./NVIDIA-Linux-x86_64-${version}.run" --no-kernel-module --accept-license --no-questions --no-backup
     
-    # Копируем установленные файлы в $out
+    # Создаем временную директорию для установки
+    mkdir -p nvidia-install
+    cd nvidia-install
+    
+    # Распаковываем .run файл
+    "../NVIDIA-Linux-x86_64-${version}.run" --extract-only
+    
+    # Копируем файлы в $out
     mkdir -p $out/bin $out/lib $out/share/nvidia
     
     # Копируем бинарные файлы
-    find /usr/bin -name "nvidia-*" -maxdepth 1 -type f -exec cp {} $out/bin/ \; 2>/dev/null || true
+    find . -name "nvidia-*" -type f -executable -exec cp {} $out/bin/ \; 2>/dev/null || true
     
     # Копируем библиотеки  
-    cp -r /usr/lib64/* $out/lib/ 2>/dev/null || true
-    cp -r /usr/lib/* $out/lib/ 2>/dev/null || true
+    find . -name "*.so*" -type f -exec cp {} $out/lib/ \; 2>/dev/null || true
     
     # Копируем данные
-    cp -r /usr/share/nvidia/* $out/share/nvidia/ 2>/dev/null || true
+    find . -path "*/share/nvidia/*" -type f -exec cp --parents {} $out/ \; 2>/dev/null || true
 
     # Создаем обертки для основных утилит
     for bin in $out/bin/nvidia-settings $out/bin/nvidia-xconfig; do
@@ -77,6 +101,9 @@ stdenv.mkDerivation rec {
   postFixup = ''
     # Автоматически исправляем библиотечные зависимости
     autoPatchelf $out
+    
+    # Исправляем шебанги в установленных скриптах
+    find $out/bin -type f -executable -exec sh -c 'file {} | grep -q "shell script" && patchShebangs {}' \;
   '';
 
   meta = with lib; {
