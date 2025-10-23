@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchFromGitHub, fetchurl, autoPatchelfHook, makeWrapper, kernel, binutils, kmod, patchelf, glibc, ncurses, gcc }:
+{ stdenv, lib, fetchFromGitHub, fetchurl, autoPatchelfHook, makeWrapper, kernel, binutils, kmod, patchelf, glibc, ncurses, gcc12 }:
 
 let
   version = "340.108";
@@ -17,6 +17,7 @@ let
     sha256 = "sha256-O6UaPV03c0XcN5F5yIGXDb0fBfhtAIzuj/PbKeSMjmg="; # Замени на реальный хеш
   };
 
+
 in stdenv.mkDerivation rec {
   pname = "nvidia-340-aur-patched";
   inherit version;
@@ -33,88 +34,82 @@ in stdenv.mkDerivation rec {
 
   buildInputs = [ 
     stdenv.cc.cc.lib 
+    glibc
     glibc.static
     ncurses
-    gcc
+    gcc12  # Явно используем GCC 12 для совместимости
   ];
 
   dontConfigure = true;
 
   unpackPhase = ''
-    # Распаковываем .run файл NVIDIA
     cp $src NVIDIA-Linux-x86_64-${version}.run
     chmod +x NVIDIA-Linux-x86_64-${version}.run
     ./NVIDIA-Linux-x86_64-${version}.run --extract-only
     cd NVIDIA-Linux-x86_64-${version}
     
-    echo "Применяем критически важные патчи..."
+    echo "Применяем ВСЕ актуальные патчи для ядра 6.12..."
     
-    # GCC 14 патч (обязательный)
-    if [ -f "${aurPatches}/0017-gcc-14.patch" ]; then
-      echo "Применяем gcc-14.patch..."
-      patch -p1 < "${aurPatches}/0017-gcc-14.patch" || true
-    fi
-    
-    # Патчи для ядер 6.x (пропускаем проблемный 6.6.patch)
-    for patch in "${aurPatches}/0011-kernel-6.0.patch" \
-                 "${aurPatches}/0012-kernel-6.2.patch" \
-                 "${aurPatches}/0013-kernel-6.3.patch" \
-                 "${aurPatches}/0014-kernel-6.5.patch" \
-                 "${aurPatches}/0016-kernel-6.8.patch"; do
-      if [ -f "$patch" ]; then
-        echo "Применяем $(basename $patch)..."
-        patch -p1 < "$patch" || true
-      fi
+    # Применяем все патчи последовательно
+    for patch in "${aurPatches}/"*.patch; do
+      echo "Применяем $(basename $patch)..."
+      patch -p1 < "$patch" || echo "Пропускаем проблемный патч: $(basename $patch)"
     done
 
-    # Вручную исправляем проблему с autoconf.h
-    echo "Ручное исправление autoconf.h..."
+    # Специфичные исправления для ядра 6.12
+    echo "Дополнительные исправления для 6.12..."
+    
+    # Исправление для output_poll_changed (критически важно для 6.12)
+    if [ -f "kernel/nv-drm.c" ]; then
+      sed -i 's/\.output_poll_changed = nv_drm_output_poll_changed,//g' kernel/nv-drm.c
+    fi
+    
+    # Исправление autoconf.h
     find . -name "*.h" -type f -exec sed -i 's|<linux/autoconf.h>|<generated/autoconf.h>|g' {} + 2>/dev/null || true
     find . -name "*.c" -type f -exec sed -i 's|<linux/autoconf.h>|<generated/autoconf.h>|g' {} + 2>/dev/null || true
     
-    # Отключаем проблемные conftest
+    # Отключаем strict проверки
     if [ -f "kernel/conftest.sh" ]; then
       sed -i 's/cc_options="$cc_options -Werror"/# cc_options="$cc_options -Werror"/g' kernel/conftest.sh
     fi
   '';
 
   buildPhase = ''
-    # Устанавливаем переменные окружения для заголовков
-    export C_INCLUDE_PATH="${glibc.dev}/include:${ncurses.dev}/include"
+    # Используем GCC 12 явно
+    export CC=${gcc12}/bin/gcc
+    export HOSTCC=$CC
+    export C_INCLUDE_PATH="${glibc.dev}/include:${kernel.dev}/include"
     export CPLUS_INCLUDE_PATH="$C_INCLUDE_PATH"
+    
+    echo "Используем компилятор: $CC"
+    $CC --version
     
     cd kernel
     
+    # Отключаем проблемные тесты
     echo "Настройка conftest..."
-    # Отключаем конкретные проблемные тесты
-    sed -i '/test_x86_efi_enabled/d' conftest.sh
-    sed -i '/test_generic_present/d' conftest.sh
-    sed -i '/test_vmap/d' conftest.sh
-    sed -i '/test_kmem_cache_create/d' conftest.sh
-    sed -i '/test_on_each_cpu/d' conftest.sh
-    sed -i '/test_smp_call_function/d' conftest.sh
-    sed -i '/test_acpi_walk_namespace/d' conftest.sh
-    sed -i '/test_pci_dma_mapping_error/d' conftest.sh
+    for test in test_x86_efi_enabled test_generic_present test_vmap \
+                test_kmem_cache_create test_on_each_cpu test_smp_call_function \
+                test_acpi_walk_namespace test_pci_dma_mapping_error; do
+      sed -i "/$test/d" conftest.sh
+    done
     
-    # Создаем символические ссылки на недостающие заголовки
-    mkdir -p fake_headers/linux
-    touch fake_headers/linux/autoconf.h
-    
-    # Собираем основной модуль ядра
-    echo "Сборка основного модуля ядра..."
+    echo "Сборка основного модуля..."
     make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) \
-      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time -I$(pwd)/fake_headers" \
+      CC="$CC" HOSTCC="$CC" \
+      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time" \
       modules
 
-    # Собираем модуль UVM (если нужно)
-    echo "Сборка модуля UVM..."
+    echo "Сборка UVM модуля..."
     cd uvm
     make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) \
-      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time -I../fake_headers" \
-      modules || echo "UVM модуль не собран, продолжаем..."
+      CC="$CC" HOSTCC="$CC" \
+      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time" \
+      modules || echo "UVM не собран, но продолжаем..."
     
     cd ../..
   '';
+
 
   installPhase = ''
     # Устанавливаем модули ядра
