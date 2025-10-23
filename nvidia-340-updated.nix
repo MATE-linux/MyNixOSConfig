@@ -3,9 +3,9 @@
 let
   version = "340.108";
   
-  # Официальный драйвер от NVIDIA
+  # Предварительно скачиваем .run файл через fetchurl
   nvidiaRun = fetchurl {
-    url = "https://us.download.nvidia.com/XFree86/Linux-x86_64/${version}/NVIDIA-Linux-x86_64-${version}.run";
+    url = "https://us.download.nvidia.com/XFree86/Linux-x86_64/340.108/NVIDIA-Linux-x86_64-340.108.run";
     sha256 = "xnHU8bfAm8GvB5uYtEetsG1wSwT4AvcEWmEfpQEztxs=";
   };
 
