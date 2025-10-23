@@ -14,7 +14,7 @@ let
     owner = "archlinux-jerry";
     repo = "nvidia-340xx";
     rev = "master"; # Используем последний коммит
-    sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Замени на реальный хеш
+    sha256 = "sha256-O6UaPV03c0XcN5F5yIGXDb0fBfhtAIzuj/PbKeSMjmg="; # Замени на реальный хеш
   };
 
   # Список патчей в правильном порядке применения
