@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchFromGitHub, fetchurl, autoPatchelfHook, makeWrapper, kernel, binutils, kmod, patchelf }:
+{ stdenv, lib, fetchFromGitHub, fetchurl, autoPatchelfHook, makeWrapper, kernel, binutils, kmod, patchelf, glibc, ncurses, gcc }:
 
 let
   version = "340.108";
@@ -31,7 +31,12 @@ in stdenv.mkDerivation rec {
     patchelf
   ];
 
-  buildInputs = [ stdenv.cc.cc.lib ];
+  buildInputs = [ 
+    stdenv.cc.cc.lib 
+    glibc.static
+    ncurses
+    gcc
+  ];
 
   dontConfigure = true;
 
@@ -42,7 +47,6 @@ in stdenv.mkDerivation rec {
     ./NVIDIA-Linux-x86_64-${version}.run --extract-only
     cd NVIDIA-Linux-x86_64-${version}
     
-    # Применяем только необходимые патчи для ядра 6.12
     echo "Применяем критически важные патчи..."
     
     # GCC 14 патч (обязательный)
@@ -51,12 +55,11 @@ in stdenv.mkDerivation rec {
       patch -p1 < "${aurPatches}/0017-gcc-14.patch" || true
     fi
     
-    # Патчи для ядер 6.x
+    # Патчи для ядер 6.x (пропускаем проблемный 6.6.patch)
     for patch in "${aurPatches}/0011-kernel-6.0.patch" \
                  "${aurPatches}/0012-kernel-6.2.patch" \
                  "${aurPatches}/0013-kernel-6.3.patch" \
                  "${aurPatches}/0014-kernel-6.5.patch" \
-                 "${aurPatches}/0015-kernel-6.6.patch" \
                  "${aurPatches}/0016-kernel-6.8.patch"; do
       if [ -f "$patch" ]; then
         echo "Применяем $(basename $patch)..."
@@ -76,7 +79,10 @@ in stdenv.mkDerivation rec {
   '';
 
   buildPhase = ''
-    # Патчим conftest для отключения ошибок
+    # Устанавливаем переменные окружения для заголовков
+    export C_INCLUDE_PATH="${glibc.dev}/include:${ncurses.dev}/include"
+    export CPLUS_INCLUDE_PATH="$C_INCLUDE_PATH"
+    
     cd kernel
     
     echo "Настройка conftest..."
@@ -90,17 +96,21 @@ in stdenv.mkDerivation rec {
     sed -i '/test_acpi_walk_namespace/d' conftest.sh
     sed -i '/test_pci_dma_mapping_error/d' conftest.sh
     
+    # Создаем символические ссылки на недостающие заголовки
+    mkdir -p fake_headers/linux
+    touch fake_headers/linux/autoconf.h
+    
     # Собираем основной модуль ядра
     echo "Сборка основного модуля ядра..."
     make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) \
-      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time" \
+      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time -I$(pwd)/fake_headers" \
       modules
 
     # Собираем модуль UVM (если нужно)
     echo "Сборка модуля UVM..."
     cd uvm
     make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) \
-      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time" \
+      KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time -I../fake_headers" \
       modules || echo "UVM модуль не собран, продолжаем..."
     
     cd ../..
