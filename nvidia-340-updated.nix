@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchFromGitHub, fetchurl, autoPatchelfHook, makeWrapper, kernel, binutils, kmod, patchelf, glibc, ncurses, gcc12 }:
+{ stdenv, lib, fetchFromGitHub, fetchurl, autoPatchelfHook, makeWrapper, kernel, binutils, kmod, patchelf, glibc, ncurses, gcc14 }:
 
 let
   version = "340.108";
@@ -30,6 +30,7 @@ in stdenv.mkDerivation rec {
     binutils
     kmod
     patchelf
+    gcc14  # Явно используем GCC 14
   ];
 
   buildInputs = [ 
@@ -37,7 +38,6 @@ in stdenv.mkDerivation rec {
     glibc
     glibc.static
     ncurses
-    gcc12  # Явно используем GCC 12 для совместимости
   ];
 
   dontConfigure = true;
@@ -48,12 +48,13 @@ in stdenv.mkDerivation rec {
     ./NVIDIA-Linux-x86_64-${version}.run --extract-only
     cd NVIDIA-Linux-x86_64-${version}
     
-    echo "Применяем ВСЕ актуальные патчи для ядра 6.12..."
+    echo "Применяем ВСЕ актуальные патчи для ядра 6.12 и GCC 14..."
     
     # Применяем все патчи последовательно
     for patch in "${aurPatches}/"*.patch; do
-      echo "Применяем $(basename $patch)..."
-      patch -p1 < "$patch" || echo "Пропускаем проблемный патч: $(basename $patch)"
+      patch_name=$(basename "$patch")
+      echo "Применяем $patch_name..."
+      patch -p1 --ignore-whitespace < "$patch" || echo "Пропускаем проблемный патч: $patch_name"
     done
 
     # Специфичные исправления для ядра 6.12
@@ -75,10 +76,10 @@ in stdenv.mkDerivation rec {
   '';
 
   buildPhase = ''
-    # Используем GCC 12 явно
-    export CC=${gcc12}/bin/gcc
+    # Явно используем GCC 14
+    export CC=${gcc14}/bin/gcc
     export HOSTCC=$CC
-    export C_INCLUDE_PATH="${glibc.dev}/include:${kernel.dev}/include"
+    export C_INCLUDE_PATH="${glibc.dev}/include:${kernel.dev}/include:${gcc14}/include"
     export CPLUS_INCLUDE_PATH="$C_INCLUDE_PATH"
     
     echo "Используем компилятор: $CC"
@@ -86,61 +87,51 @@ in stdenv.mkDerivation rec {
     
     cd kernel
     
-    # Отключаем проблемные тесты
     echo "Настройка conftest..."
-    for test in test_x86_efi_enabled test_generic_present test_vmap \
-                test_kmem_cache_create test_on_each_cpu test_smp_call_function \
-                test_acpi_walk_namespace test_pci_dma_mapping_error; do
-      sed -i "/$test/d" conftest.sh
-    done
+    # Минимальное вмешательство в conftest - только отключаем самые проблемные тесты
+    sed -i '/test_x86_efi_enabled/d' conftest.sh
+    sed -i '/test_generic_present/d' conftest.sh
     
-    echo "Сборка основного модуля..."
+    echo "Сборка основного модуля с GCC 14..."
     make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) \
-      CC="$CC" HOSTCC="$CC" \
+      CC="$CC" \
+      HOSTCC="$CC" \
       KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time" \
       modules
 
-    echo "Сборка UVM модуля..."
+    echo "Сборка UVM модуля с GCC 14..."
     cd uvm
     make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$(pwd) \
-      CC="$CC" HOSTCC="$CC" \
+      CC="$CC" \
+      HOSTCC="$CC" \
       KCFLAGS="-Wno-error -Wno-error=missing-prototypes -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration -Wno-error=date-time" \
       modules || echo "UVM не собран, но продолжаем..."
     
     cd ../..
   '';
 
-
   installPhase = ''
-    # Устанавливаем модули ядра
     echo "Установка модулей ядра..."
     mkdir -p $out/lib/modules/${kernel.modDirVersion}/misc
     
     cd NVIDIA-Linux-x86_64-${version}/kernel
     
-    # Устанавливаем основные модули
     install -D -m 644 nvidia.ko $out/lib/modules/${kernel.modDirVersion}/misc/nvidia.ko
     
-    # Пытаемся установить UVM модуль если он есть
     if [ -f "uvm/nvidia-uvm.ko" ]; then
       install -D -m 644 uvm/nvidia-uvm.ko $out/lib/modules/${kernel.modDirVersion}/misc/nvidia-uvm.ko
     fi
 
-    # Сжимаем модули
     find $out/lib/modules/${kernel.modDirVersion}/misc -name "*.ko" -exec gzip -9 {} +
 
-    # Устанавливаем пользовательскую часть
     echo "Установка пользовательской части..."
     cd ../..
     mkdir -p $out/bin $out/lib $out/share/nvidia
     
-    # Копируем бинарные файлы
     find NVIDIA-Linux-x86_64-${version} -maxdepth 1 -name "nvidia-*" -type f -executable -exec cp {} $out/bin/ \; 2>/dev/null || true
     
-    # Копируем библиотеки  
     find NVIDIA-Linux-x86_64-${version} -name "*.so*" -type f -exec cp {} $out/lib/ \; 2>/dev/null || true
     
-    # Создаем обертки для основных утилит
     for bin in $out/bin/nvidia-settings $out/bin/nvidia-xconfig; do
       if [ -f "$bin" ]; then
         wrapProgram "$bin" \
@@ -148,17 +139,33 @@ in stdenv.mkDerivation rec {
       fi
     done
 
-    # Создаем конфигурацию для modprobe
     mkdir -p $out/etc/modprobe.d
     echo "blacklist nouveau" > $out/etc/modprobe.d/nvidia-340.conf
     echo "options nvidia NVreg_EnableMSI=1" >> $out/etc/modprobe.d/nvidia-340.conf
+    
+    # Копируем конфигурацию Xorg
+    mkdir -p $out/share/X11/xorg.conf.d
+    cat > $out/share/X11/xorg.conf.d/20-nvidia.conf << 'EOF'
+Section "Files"
+  ModulePath   "/run/opengl-driver/lib/xorg/modules"
+  ModulePath   "/run/opengl-driver-32/lib/xorg/modules"
+EndSection
+
+Section "Device"
+  Identifier "Nvidia Card"
+  Driver "nvidia"
+  VendorName "NVIDIA Corporation"
+  Option "NoLogo" "true"
+EndSection
+
+Section "ServerFlags"
+  Option "IgnoreABI" "1"
+EndSection
+EOF
   '';
 
   postFixup = ''
-    # Автоматически исправляем библиотечные зависимости
     autoPatchelf $out
-    
-    # Исправляем шебанги в установленных скриптах
     patchShebangs $out/bin
   '';
 
