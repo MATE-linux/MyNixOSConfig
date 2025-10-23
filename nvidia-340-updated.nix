@@ -13,7 +13,7 @@ let
   aurPatches = fetchFromGitHub {
     owner = "archlinux-jerry";
     repo = "nvidia-340xx";
-    rev = "main"; # Используем последний коммит
+    rev = "master"; # Используем последний коммит
     sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Замени на реальный хеш
   };
 
