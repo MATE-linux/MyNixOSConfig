@@ -3,11 +3,6 @@
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
 { config, lib, pkgs, ... }:
-let
-  nvidia340Updated = pkgs.callPackage ./nvidia-340-updated.nix {
-    kernel = config.boot.kernelPackages.kernel;
-  };
-in
 {
   imports =
     [ # Include the results of the hardware scan.
@@ -292,9 +287,6 @@ in
     weston
     minetest
     luanti 
-    (callPackage ./nvidia-340-updated.nix { 
-      kernel = config.boot.kernelPackages.kernel; 
-    })
   ];
   #qt = {
   #  enable = true;
