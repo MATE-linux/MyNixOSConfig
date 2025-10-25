@@ -3,6 +3,7 @@
 # https://search.nixos.org/options and in the NixOS manual (`nixos-help`).
 
 { config, lib, pkgs, ... }:
+
 {
   imports =
     [ # Include the results of the hardware scan.
@@ -75,7 +76,7 @@
       echo "Восстановление из гибернации..."
     '';
   };
-  networking.hostName = "nixos-MSI1"; # Define your hostname.
+  networking.hostName = "nixos-MSI"; # Define your hostname.
   # Pick only one of the below networking options.
   #networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
   networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
