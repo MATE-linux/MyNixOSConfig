@@ -286,8 +286,8 @@
     github-desktop
     waydroid
     weston
-    minetest
-    luanti 
+    luanti
+    ticktick 
   ];
   #qt = {
   #  enable = true;
