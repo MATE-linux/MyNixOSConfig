@@ -318,6 +318,8 @@
     libsecret
     seahorse
     unstable.floorp-bin
+    protonvpn-cli
+    protonvpn-gui
   ];
   #qt = {
   #  enable = true;
