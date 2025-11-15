@@ -7,6 +7,9 @@
     
     # При желании, home-manager также можно зафиксировать на стабильной версии
     # home-manager.url = "github:nix-community/home-manager/release-25.05";
+
+    # Добавляем нестабильный канал для Floorp
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs = { self, nixpkgs, ... }@inputs: {
@@ -20,6 +23,17 @@
         #   home-manager.useUserPackages = true;
         #   home-manager.users.ваше-имя-пользователя = import ./home.nix;
         # }
+        {
+          # Добавляем overlay для нестабильных пакетов
+          nixpkgs.overlays = [
+            (final: prev: {
+              unstable = import nixpkgs-unstable {
+                system = "x86_64-linux";
+                config.allowUnfree = true;
+              };
+            })
+          ];
+        }
       ];
     };
   };

@@ -121,6 +121,32 @@
   services.udev.extraRules = ''
     SUBSYSTEM=="usb", ATTRS{idVendor}=="04a9", ATTRS{idProduct}=="????", MODE="0666", GROUP="lp", ENV{libsane_matched}=="yes", RUN+="${pkgs.acl}/bin/setfacl -m g:scanner:rw $env{DEVNAME}"
   '';
+  # Включение GNOME Keyring и Seahorse
+  services.gnome.gnome-keyring.enable = true;
+  programs.seahorse.enable = true;
+
+  # Настройка PAM для автоматической разблокировки keyring при входе
+  security.pam.services.login.enableGnomeKeyring = true;
+  security.pam.services.gdm.enableGnomeKeyring = true;
+
+  # Настройка окружения для keyring
+  environment.sessionVariables = {
+    # Убедитесь, что SSH-агент использует правильный сокет
+    SSH_AUTH_SOCK = "/run/user/1000/keyring/ssh"; # Измените UID если нужно
+  };
+
+  # Настройка Git (опционально, если используете Git)
+  programs.git = {
+    enable = true;
+    config = {
+      credential.helper = "store"; # или "libsecret" если предпочитаете
+    };
+  };
+
+  # Для VS Code - дополнительные настройки
+  environment.variables = {
+    ELECTRON_ENABLE_SECURITY_WARNINGS = "1";
+  };
   # Enable sound.
   # services.pulseaudio.enable = true;
   # OR
@@ -288,6 +314,10 @@
     weston
     luanti
     ticktick 
+    gnome-keyring
+    libsecret
+    seahorse
+    unstable.floorp
   ];
   #qt = {
   #  enable = true;
