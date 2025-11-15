@@ -12,9 +12,10 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, ... }@inputs: {
     nixosConfigurations.nixos-MSI = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
+      specialArgs = { inherit nixpkgs-unstable; };  # Добавляем эту строку
       modules = [
         ./configuration.nix
         # home-manager.nixosModules.home-manager

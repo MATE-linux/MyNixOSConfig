@@ -317,7 +317,7 @@
     gnome-keyring
     libsecret
     seahorse
-    unstable.floorp
+    unstable.floorp-bin
   ];
   #qt = {
   #  enable = true;
