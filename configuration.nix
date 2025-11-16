@@ -149,7 +149,9 @@ in
       # Настройки безопасности
       SIGNUPS_ALLOWED = true;      # Разрешить регистрацию (можно отключить после создания аккаунта)
       INVITATIONS_ALLOWED = true;
-      
+      SIGNUPS_VERIFY=false;
+
+
       # Для локального использования
       USE_SYSLOG = false;
       LOG_LEVEL = "warn";
