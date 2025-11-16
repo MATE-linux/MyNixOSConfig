@@ -1,0 +1,4 @@
+/etc/vaultwarden.env
+/etc/vaultwarden-key.txt
+*.age
+secrets/

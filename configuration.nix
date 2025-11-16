@@ -4,6 +4,20 @@
 
 { config, lib, pkgs, ... }:
 
+
+let
+  vaultwardenSecrets = pkgs.writeShellScript "vaultwarden-setup" ''
+    if [ ! -f /etc/vaultwarden.env ]; then
+      # Генерируем секретный токен
+      ADMIN_TOKEN=$(openssl rand -base64 48)
+      cat > /etc/vaultwarden.env << EOF
+    ADMIN_TOKEN=$ADMIN_TOKEN
+    EOF
+      chmod 600 /etc/vaultwarden.env
+      echo "Секретный файл создан: /etc/vaultwarden.env"
+    fi
+  '';
+in
 {
   imports =
     [ # Include the results of the hardware scan.
@@ -81,6 +95,7 @@
   #networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
   networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
   networking.firewall = {
+    allowedTCPPorts = [ 8222 ];  # Порт для Vaultwarden
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
   };
@@ -121,6 +136,34 @@
   services.udev.extraRules = ''
     SUBSYSTEM=="usb", ATTRS{idVendor}=="04a9", ATTRS{idProduct}=="????", MODE="0666", GROUP="lp", ENV{libsane_matched}=="yes", RUN+="${pkgs.acl}/bin/setfacl -m g:scanner:rw $env{DEVNAME}"
   '';
+
+  # Включаем необходимые службы
+  services.vaultwarden = {
+    enable = true;
+    config = {
+      # Базовые настройки
+      DOMAIN = "http://localhost";
+      ROCKET_ADDRESS = "0.0.0.0";  # Слушаем на всех интерфейсах
+      ROCKET_PORT = 8222;
+      
+      # Настройки безопасности
+      SIGNUPS_ALLOWED = true;      # Разрешить регистрацию (можно отключить после создания аккаунта)
+      INVITATIONS_ALLOWED = true;
+      
+      # Для локального использования
+      USE_SYSLOG = false;
+      LOG_LEVEL = "warn";
+      EXTENDED_LOGGING = true;
+    };
+    
+    # Настройки базы данных
+    dbBackend = "sqlite";
+    
+    # Папка с данными (по умолчанию /var/lib/vaultwarden)
+    environmentFile = "/etc/vaultwarden.env";
+  };
+
+
   # Включение GNOME Keyring и Seahorse
   services.gnome.gnome-keyring.enable = true;
   programs.seahorse.enable = true;
@@ -320,6 +363,9 @@
     unstable.floorp-bin
     protonvpn-cli
     protonvpn-gui
+    chromium
+    openssl
+    bitwarden
   ];
   #qt = {
   #  enable = true;
