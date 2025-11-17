@@ -368,6 +368,7 @@ in
     chromium
     openssl
     bitwarden
+    gnome-clocks
   ];
   #qt = {
   #  enable = true;
