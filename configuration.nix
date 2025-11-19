@@ -166,6 +166,21 @@ in
   };
 
 
+  # Включить службу Samba
+  services.samba.enable = true;
+  services.samba.openFirewall = true; # Автоматически открыть порты в фаерволе
+
+  # Определить общую папку
+  services.samba.shares = {
+    my-share = {
+      path = "/home/mate/App/Samba/network/"; # Укажите ваш путь
+      "read only" = "no"; # Разрешить запись
+      "guest ok" = "yes"; # Разрешить гостевой доступ
+      "browseable" = "yes"; # Сделать видимой в сетевом окружении
+    };
+  };
+
+
   # Включение GNOME Keyring и Seahorse
   services.gnome.gnome-keyring.enable = true;
   programs.seahorse.enable = true;
@@ -417,6 +432,13 @@ in
   #
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
   system.stateVersion = "25.05"; # Did you read the comment?
+
+  # Настройка пользователя Samba (пароль будет задан отдельно)
+  system.activationScripts.samba-user = ''
+    echo -n "Введите пароль для пользователя Samba: "
+    read -s sambapass
+    echo "ваш_пользователь:$sambapass" | ${pkgs.samba}/bin/smbpasswd -a -s ваш_пользователь
+  '';
 
 }
 
