@@ -167,16 +167,32 @@ in
 
 
   # Включить службу Samba
-  services.samba.enable = true;
-  services.samba.openFirewall = true; # Автоматически открыть порты в фаерволе
-
-  # Определить общую папку
-  services.samba.shares = {
-    my-share = {
-      path = "/home/mate/App/Samba/network/"; # Укажите ваш путь
-      "read only" = "no"; # Разрешить запись
-      "guest ok" = "yes"; # Разрешить гостевой доступ
-      "browseable" = "yes"; # Сделать видимой в сетевом окружении
+  services.samba = {
+    enable = true;
+    openFirewall = true;
+    
+    # Новый синтаксис через settings
+    settings = {
+      global = {
+        workgroup = "WORKGROUP";
+        security = "user";
+        "map to guest" = "bad user";
+        "guest account" = "nobody";
+        "usershare allow guests" = "yes";
+      };
+    };
+    
+    shares = {
+      public = {
+        path = "/home/mate/App/Share/network";
+        "read only" = "no";
+        "guest ok" = "yes";
+        "browseable" = "yes";
+        "create mask" = "0666";
+        "directory mask" = "0777";
+        "force user" = "nobody";
+        "force group" = "nogroup";
+      };
     };
   };
 
