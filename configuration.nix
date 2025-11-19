@@ -184,7 +184,7 @@ in
     
     shares = {
       public = {
-        path = "/home/mate/App/Share/network";
+        path = "/home/mate/App/Samba/network";
         "read only" = "no";
         "guest ok" = "yes";
         "browseable" = "yes";
