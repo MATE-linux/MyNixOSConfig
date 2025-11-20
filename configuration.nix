@@ -174,7 +174,7 @@ in
     # Новый синтаксис через settings
     settings = {
       global = {
-        workgroup = "WORKGROUP";
+        workgroup = "MYGROUP";
         security = "user";
         "map to guest" = "bad user";
         "guest account" = "nobody";
@@ -184,10 +184,12 @@ in
     
     shares = {
       public = {
-        path = "/home/mate/App/Samba/network";
+        path = "/mnt/files";
         "read only" = "no";
         "guest ok" = "yes";
         "browseable" = "yes";
+        "public" = "yes";
+        "writeable" = "yes";
         "create mask" = "0666";
         "directory mask" = "0777";
         "force user" = "nobody";
@@ -448,13 +450,6 @@ in
   #
   # For more information, see `man configuration.nix` or https://nixos.org/manual/nixos/stable/options#opt-system.stateVersion .
   system.stateVersion = "25.05"; # Did you read the comment?
-
-  # Настройка пользователя Samba (пароль будет задан отдельно)
-  system.activationScripts.samba-user = ''
-    echo -n "Введите пароль для пользователя Samba: "
-    read -s sambapass
-    echo "ваш_пользователь:$sambapass" | ${pkgs.samba}/bin/smbpasswd -a -s ваш_пользователь
-  '';
 
 }
 
