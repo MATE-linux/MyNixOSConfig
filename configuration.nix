@@ -254,6 +254,14 @@ in
       tree
     ];
   };
+  users.users.arseny = {
+    isNormalUser = true;
+    extraGroups = [ "users" "scanner" "lp" ];
+    hashedPassword = "$y$j9T$WMVSGYYLehheD9kkHn1H9/$O1rsJ/D2esdXVQkI2QgrlMor7ZE/26Ve8BLGeEy8zy3";
+    packages = with pkgs; [
+      tree
+    ];
+  };
   programs.adb.enable = true;
   programs.firefox.enable = true;
   programs.java = {
@@ -402,6 +410,7 @@ in
     openssl
     bitwarden
     gnome-clocks
+    cinny-desktop
   ];
   #qt = {
   #  enable = true;
