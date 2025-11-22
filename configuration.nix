@@ -411,6 +411,7 @@ in
     bitwarden
     gnome-clocks
     cinny-desktop
+    xfce.libxfce4ui
   ];
   #qt = {
   #  enable = true;
