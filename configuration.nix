@@ -414,6 +414,8 @@ in
     cinny-desktop
     xfce.libxfce4ui
     traceroute
+    zeronsd
+    zerotierone
   ];
   #qt = {
   #  enable = true;
