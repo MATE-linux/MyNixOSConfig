@@ -416,6 +416,7 @@ in
     traceroute
     zeronsd
     zerotierone
+    steam-run
   ];
   #qt = {
   #  enable = true;
