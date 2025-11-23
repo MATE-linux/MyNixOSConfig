@@ -96,6 +96,7 @@ in
   networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
   networking.firewall = {
     allowedTCPPorts = [ 8222 ];  # Порт для Vaultwarden
+    allowedUDPPorts = [ 30000 ];
     allowedTCPPortRanges = [ { from = 1714; to = 1764; } ];
     allowedUDPPortRanges = [ { from = 1714; to = 1764; } ];
   };
@@ -412,6 +413,7 @@ in
     gnome-clocks
     cinny-desktop
     xfce.libxfce4ui
+    traceroute
   ];
   #qt = {
   #  enable = true;
